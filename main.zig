@@ -155,7 +155,15 @@ fn handleConnection(conn: std.net.Server.Connection) void {
     defer conn.stream.close();
 
     var read_buffer: [4096]u8 = undefined;
-    var http_server = std.http.Server.init(conn, &read_buffer);
+    var write_buffer: [4096]u8 = undefined;
+
+    var stream_reader = conn.stream.reader(&read_buffer);
+    var stream_writer = conn.stream.writer(&write_buffer);
+
+    const writer = &stream_writer.interface;
+    const reader = stream_reader.interface();
+
+    var http_server = std.http.Server.init(reader, writer);
 
     var request = http_server.receiveHead() catch |err| {
         std.log.err("receiveHead: {s}", .{@errorName(err)});
