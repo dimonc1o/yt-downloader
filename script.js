@@ -4,6 +4,7 @@ const info = document.getElementById('info');
 const iconContainer = document.getElementById('domain-icon');
 const themeToggle = document.getElementById('theme-toggle');
 const unsupportedMsg = document.getElementById('unsupported-msg');
+const statusText = document.getElementById('status-text');
 
 const icons = {
     youtube: `<svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
@@ -17,6 +18,10 @@ function getDomainType(url) {
     if (url.includes("spotify.com") || url.includes("music.apple.com")) return "unsupported";
     return null;
 }
+
+// Восстанавливаем тему, если пользователь заходил ранее
+const savedTheme = localStorage.getItem('theme') || 'dark';
+if (savedTheme === 'light') document.body.setAttribute('data-theme', 'light');
 
 input.addEventListener('input', () => {
     const url = input.value.trim();
@@ -39,34 +44,35 @@ input.addEventListener('input', () => {
 });
 
 themeToggle.onclick = () => {
-    document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    const isLight = document.body.getAttribute('data-theme') === 'light';
+    const newTheme = isLight ? 'dark' : 'light';
+    document.body.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
 };
 
 btn.onclick = async () => {
     const url = input.value.trim();
     if (!url || !getDomainType(url)) return;
     
-    info.classList.remove('hidden');
-    info.style.display = 'block';
-    document.getElementById('status-text').innerText = "Processing download...";
+    info.classList.add('active');
+    statusText.innerText = "Processing download...";
     
     try {
         const res = await fetch('/dl?url=' + encodeURIComponent(url));
         if (res.ok) {
-            document.getElementById('status-text').innerText = "Done! File saved.";
+            statusText.innerText = "Done! File saved.";
             input.value = "";
-            iconContainer.classList.remove('visible');
-            btn.classList.remove('active');
+            
+            // Искусственно вызываем input event, чтобы сбросить UI (иконки, кнопку)
+            input.dispatchEvent(new Event('input'));
+            
             setTimeout(() => {
-                info.classList.add('hidden');
-                setTimeout(() => {
-                    if (info.classList.contains('hidden')) info.style.display = 'none';
-                }, 500);
-            }, 2000);
+                info.classList.remove('active');
+            }, 3000);
         } else {
-            document.getElementById('status-text').innerText = "Error! Check server console.";
+            statusText.innerText = "Error! Check server console.";
         }
     } catch (e) {
-        document.getElementById('status-text').innerText = "Connection lost or server crashed.";
+        statusText.innerText = "Connection lost or server crashed.";
     }
 };
